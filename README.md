@@ -67,6 +67,8 @@ java -jar PCMF1Simulator.jar
 2.  The application will play the audio through your speakers in real-time, syncing to the video framerate.
 3.  The GUI tracks corrected P/Q Parity dropout errors simulating hardware recovery.
 
+![JPCMF1](JPCMF1.png)
+
 ---
 
 ## 4. Hardware VHS Recording
