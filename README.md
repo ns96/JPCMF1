@@ -16,6 +16,8 @@ To understand how this encoder works, we must look at how digital data is mapped
 3.  **PCM Audio Data Block:** The main part of the screen is a dense flickering matrix encompassing the raw 16-Bit interleaved PCM audio data, parities, and checksums.
 4.  **Horizontal Pillarboxing:** Deep black borders prevent data loss due to *overscan* on older CRT displays.
 
+![PCM-F1 Frame Structure](frame.png)
+
 ### Inside a Single Row of Audio Data
 Each of the 240 active audio lines contains exactly **137 bits** of data:
 
