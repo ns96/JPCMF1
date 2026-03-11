@@ -2,7 +2,6 @@
 *.class
 
 # Build Artifacts
-PCMF1Simulator.jar
 build_jar/
 
 # Bundled Runtime
