@@ -1,0 +1,17 @@
+# Java Class Files
+*.class
+
+# Build Artifacts
+PCMF1Simulator.jar
+build_jar/
+
+# Bundled Runtime
+jre8/
+
+# OS/System Files
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# Output Files
+*.mp4

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sony PCM-F1 STC-007 Simulator Guide</title>
+    <meta name="description"
+        content="Documentation and usage guide for the Sony PCM-F1 STC-007 Software Simulator executable.">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --surface-color: rgba(22, 27, 34, 0.7);
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-glow: #00ff88;
+            --accent-muted: #1f6feb;
+            --danger: #f85149;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(31, 111, 235, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(0, 255, 136, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            margin: 40px 20px;
+            padding: 40px;
+            background: var(--surface-color);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(135deg, #fff, var(--text-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: var(--accent-glow);
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        h2 {
+            display: flex;
+            align-items: center;
+            font-size: 1.6rem;
+            color: #fff;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        h2::before {
+            content: "";
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-muted);
+            border-radius: 50%;
+            margin-right: 12px;
+            box-shadow: 0 0 8px var(--accent-muted);
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+        }
+
+        .step-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-muted);
+            border-radius: 8px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .step-box:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            border-left-color: var(--accent-glow);
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        code,
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #e6edf3;
+        }
+
+        code {
+            padding: 2px 6px;
+            font-size: 0.9em;
+            color: var(--accent-glow);
+        }
+
+        pre {
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 0.95rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: transparent;
+            color: var(--accent-glow);
+            text-decoration: none;
+            border: 1px solid var(--accent-glow);
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-link:hover {
+            background-color: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: rgba(31, 111, 235, 0.1);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .note {
+            background: rgba(248, 81, 73, 0.1);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .note strong {
+            color: var(--danger);
+        }
+
+        footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Sony PCM-F1 Simulator</h1>
+        </header>
+
+        <section>
+            <p>Welcome to the <strong>Sony PCM-F1 Simulator</strong>. This Gemini Pro coded application provides a window
+                into early
+                digital audio. It allows you to encode 16-bit WAV files into a 1981 erra EIAJ STC-007 NTSC video signal,
+                ready to record onto physical VHS hardware. Conversely, it can decode ripped video captures
+                and play them back in real-time.</p>
+
+            <!--Add note concerning that Gemini 3 Pro coded this application and it was not tested on actual hardware-->
+            <p>Note: This application was coded by Gemini 3.1 Pro and has not been tested on actual hardware or PCM
+                encoded videos. Its meant primarily as a proof of concept and educational tool. If you are looking for a
+                production-ready application, please use the original Sony PCM-F1.</p>
+        </section>
+
+        <section id="anatomy">
+            <h2>Anatomy of a PCM-F1 Video Frame</h2>
+            <p>To understand how this encoder works, we must look at how digital data is mapped onto a television
+                screen. An entire interlaced video frame (such as NTSC) is divided into specialized sections to allow
+                VHS recording without data loss.</p>
+
+            <svg viewBox="0 0 1000 600" width="100%"
+                style="margin: 20px 0; background: rgba(0,0,0,0.5); border-radius: 8px; border: 1px solid var(--border-color); padding: 20px 0;">
+
+                <!-- Horizontal Resolution Label -->
+                <path d="M 150 35 L 850 35" stroke="#8b949e" stroke-width="2" stroke-dasharray="4" />
+                <path d="M 150 25 L 150 45 M 850 25 L 850 45" stroke="#8b949e" stroke-width="2" />
+                <text x="500" y="25" fill="#8b949e" font-family="'JetBrains Mono', monospace" font-size="14"
+                    font-weight="bold" text-anchor="middle">720 Pixels (Horizontal Resolution)</text>
+
+                <!-- Vertical Resolution Label -->
+                <path d="M 100 50 L 100 550" stroke="#8b949e" stroke-width="2" stroke-dasharray="4" />
+                <path d="M 90 50 L 110 50 M 90 550 L 110 550" stroke="#8b949e" stroke-width="2" />
+                <text x="75" y="300" fill="#8b949e" font-family="'JetBrains Mono', monospace" font-size="14"
+                    font-weight="bold" transform="rotate(-90 75,300)" text-anchor="middle">480i Lines (Vertical
+                    Resolution)</text>
+
+                <!-- Main Screen Outline (4:3) -->
+                <rect x="150" y="50" width="700" height="500" fill="#0d1117" stroke="#30363d" stroke-width="4"
+                    rx="10" />
+
+                <!-- VBLANK Top -->
+                <rect x="150" y="50" width="700" height="50" fill="#222" rx="10" />
+                <text x="500" y="80" fill="#8b949e" font-family="'JetBrains Mono', monospace" font-size="14"
+                    font-weight="bold" text-anchor="middle">VBLANK (Active Video Blanking) - 17 Lines</text>
+
+                <!-- Control Word -->
+                <rect x="150" y="100" width="700" height="20" fill="#f85149" />
+                <text x="500" y="115" fill="#111" font-family="'JetBrains Mono', monospace" font-size="12"
+                    font-weight="bold" text-anchor="middle">STC-007 CONTROL WORD (Line 1 of Active Video)</text>
+
+                <!-- Audio Data Block -->
+                <rect x="150" y="120" width="700" height="380" fill="url(#digitalNoise)" />
+                <defs>
+                    <pattern id="digitalNoise" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                        <rect x="0" y="0" width="5" height="5" fill="#c9d1d9" />
+                        <rect x="5" y="0" width="5" height="5" fill="#1f6feb" />
+                        <rect x="0" y="5" width="5" height="5" fill="#1f6feb" />
+                        <rect x="5" y="5" width="5" height="5" fill="#c9d1d9" />
+                    </pattern>
+                </defs>
+                <rect x="250" y="270" width="500" height="60" fill="rgba(13, 17, 23, 0.9)" rx="6" stroke="#1f6feb"
+                    stroke-width="2" />
+                <text x="500" y="300" fill="#00ff88" font-family="'JetBrains Mono', monospace" font-size="20"
+                    font-weight="bold" text-anchor="middle">PCM AUDIO DATA BLOCK</text>
+                <text x="500" y="320" fill="#c9d1d9" font-family="'Inter', sans-serif" font-size="14"
+                    text-anchor="middle">240 Active Lines of Binary Pulses</text>
+
+                <!-- VBLANK Bottom -->
+                <rect x="150" y="500" width="700" height="50" fill="#222" rx="10" />
+                <text x="500" y="530" fill="#8b949e" font-family="'JetBrains Mono', monospace" font-size="14"
+                    font-weight="bold" text-anchor="middle">OVERSCAN / HEAD-SWITCHING NOISE PADDING</text>
+
+                <!-- Left/Right Pillarbox Indicators -->
+                <path d="M 120 120 L 140 120 M 120 500 L 140 500 M 130 120 L 130 500" stroke="#d29922"
+                    stroke-width="2" />
+                <text x="110" y="315" fill="#d29922" font-family="'Inter', sans-serif" font-size="12" font-weight="bold"
+                    transform="rotate(-90 110,315)" text-anchor="middle">Pillarbox</text>
+
+                <path d="M 880 120 L 860 120 M 880 500 L 860 500 M 870 120 L 870 500" stroke="#d29922"
+                    stroke-width="2" />
+                <text x="890" y="315" fill="#d29922" font-family="'Inter', sans-serif" font-size="12" font-weight="bold"
+                    transform="rotate(90 890,315)" text-anchor="middle">Pillarbox</text>
+            </svg>
+
+            <div class="step-box" style="border-left-color: #8b949e;">
+                <div class="step-title" style="color: #8b949e">1. VBLANK (Vertical Blanking Interval)</div>
+                <p>The top 17 lines of the picture are intentionally forced to perfect black. In the era of cathode-ray
+                    tubes (CRTs), this gave the electron beam time to travel from the bottom right of the screen back to
+                    the top left. More importantly, it gives the mechanical switching heads inside a VCR time to align
+                    without overwriting or destroying your digital audio.</p>
+            </div>
+            <div class="step-box" style="border-left-color: #f85149;">
+                <div class="step-title" style="color: #f85149">2. Control Word Header</div>
+                <p>Immediately after the VBLANK, the first active line of video is a dedicated System Control Line. It
+                    contains a repeating <code>0x3333</code> digital signature. A real PCM-F1 hardware decoder
+                    aggressively hunts for this barcode to perfectly align its vertical phase clock. Without this
+                    header, the decoder will refuse to unmute its audio outputs.</p>
+            </div>
+            <div class="step-box" style="border-left-color: #00ff88;">
+                <div class="step-title" style="color: #00ff88">3. PCM Audio Data Block</div>
+                <p>The vast majority of the screen is filled with a dense, flickering black-and-white static matrix.
+                    This encompasses the raw 16-Bit interleaved PCM audio data, error correction parities, and
+                    line-by-line checksums, packed across roughly 240 horizontal scanlines. Each line carries bits as
+                    strictly timed white and black pixel pulses.</p>
+            </div>
+            <div class="step-box" style="border-left-color: #d29922;">
+                <div class="step-title" style="color: #d29922">4. Horizontal Pillarboxing</div>
+                <p>The data block doesn't stretch completely edge-to-edge. It is horizontally padded with deep black
+                    borders. This prevents analog TVs and VCRs from chopping off the ends of the audio data due to
+                    <em>overscan</em> (a hardware quirk where older CRT scopes cut off the edges of broadcasting
+                    pictures).
+                </p>
+            </div>
+
+            <div class="step-box"
+                style="border-left-color: #1f6feb; border-top: 1px dashed var(--border-color); margin-top: 40px; background: rgba(31, 111, 235, 0.05);">
+                <div class="step-title" style="color: #1f6feb">Inside a Single Row of Audio Data</div>
+                <p>If you zoom into just one of the 240 active audio lines, you will find exactly <strong>137
+                        bits</strong> of data structured from left to right:</p>
+
+                <svg viewBox="0 0 1000 120" width="100%"
+                    style="margin: 20px 0; background: #000; border-radius: 4px; border: 2px solid #555; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    <!-- Patterns to mimic the crisp black and white digital video pixels -->
+                    <defs>
+                        <pattern id="syncPattern" x="0" y="0" width="13.3" height="20" patternUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width="6.65" height="20" fill="#fff" />
+                            <rect x="6.65" y="0" width="6.65" height="20" fill="#000" />
+                        </pattern>
+                        <pattern id="audioPattern" x="0" y="0" width="44" height="20" patternUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width="5.5" height="20" fill="#fff" />
+                            <rect x="5.5" y="0" width="11" height="20" fill="#000" />
+                            <rect x="16.5" y="0" width="5.5" height="20" fill="#fff" />
+                            <rect x="22" y="0" width="5.5" height="20" fill="#000" />
+                            <rect x="27.5" y="0" width="11" height="20" fill="#fff" />
+                            <rect x="38.5" y="0" width="5.5" height="20" fill="#000" />
+                        </pattern>
+                        <pattern id="parityPattern" x="0" y="0" width="33" height="20" patternUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width="11" height="20" fill="#000" />
+                            <rect x="11" y="0" width="5.5" height="20" fill="#fff" />
+                            <rect x="16.5" y="0" width="5.5" height="20" fill="#000" />
+                            <rect x="22" y="0" width="11" height="20" fill="#fff" />
+                        </pattern>
+                        <pattern id="crcPattern" x="0" y="0" width="22" height="20" patternUnits="userSpaceOnUse">
+                            <rect x="0" y="0" width="5.5" height="20" fill="#fff" />
+                            <rect x="5.5" y="0" width="11" height="20" fill="#000" />
+                            <rect x="16.5" y="0" width="5.5" height="20" fill="#fff" />
+                        </pattern>
+                    </defs>
+
+                    <!-- Draw 137 discrete bits simulated as binary bars -->
+                    <!-- FSK SYNC: 101010... -->
+                    <!-- Made purely for aesthetic, not an exact count of the new FSK record size -->
+                    <rect x="10" y="30" width="30" height="20" fill="url(#syncPattern)" />
+                    <path d="M 10 60 L 10 70 L 40 70 L 40 60" fill="none" stroke="#d29922" stroke-width="2" />
+                    <text x="25" y="90" fill="#d29922" font-family="'JetBrains Mono', monospace" font-size="10"
+                        font-weight="bold" text-anchor="middle">FSK SYNC</text>
+
+                    <!-- FSK Data: ASCII Payload... -->
+                    <rect x="45" y="30" width="70" height="20" fill="url(#parityPattern)" />
+                    <path d="M 45 60 L 45 70 L 115 70 L 115 60" fill="none" stroke="#aa00ff" stroke-width="2" />
+                    <text x="80" y="90" fill="#aa00ff" font-family="'JetBrains Mono', monospace" font-size="10"
+                        font-weight="bold" text-anchor="middle">FSK DATA</text>
+
+                    <!-- STC Sync Pulse: 9 bits. 101010101 -> white/black alternating -->
+                    <rect x="120" y="30" width="60" height="20" fill="url(#syncPattern)" />
+                    <path d="M 120 60 L 120 70 L 180 70 L 180 60" fill="none" stroke="#f85149" stroke-width="2" />
+                    <text x="150" y="90" fill="#f85149" font-family="'JetBrains Mono', monospace" font-size="10"
+                        font-weight="bold" text-anchor="middle">STC SYNC (9b)</text>
+
+                    <!-- Audio: 84 bits -> random-looking pattern -->
+                    <rect x="185" y="30" width="460" height="20" fill="url(#audioPattern)" />
+                    <path d="M 185 60 L 185 70 L 645 70 L 645 60" fill="none" stroke="#1f6feb" stroke-width="2" />
+                    <text x="415" y="90" fill="#1f6feb" font-family="'JetBrains Mono', monospace" font-size="10"
+                        font-weight="bold" text-anchor="middle">AUDIO WORDS L1-R3 (84b)</text>
+
+                    <!-- Parity: 28 bits -->
+                    <rect x="650" y="30" width="165" height="20" fill="url(#parityPattern)" />
+                    <path d="M 650 60 L 650 70 L 815 70 L 815 60" fill="none" stroke="#d29922" stroke-width="2" />
+                    <text x="732" y="90" fill="#d29922" font-family="'JetBrains Mono', monospace" font-size="10"
+                        font-weight="bold" text-anchor="middle">P/Q PARITY (28b)</text>
+
+                    <!-- CRC: 16 bits -->
+                    <rect x="820" y="30" width="170" height="20" fill="url(#crcPattern)" />
+                    <path d="M 820 60 L 820 70 L 990 70 L 990 60" fill="none" stroke="#00ff88" stroke-width="2" />
+                    <text x="905" y="90" fill="#00ff88" font-family="'JetBrains Mono', monospace" font-size="10"
+                        font-weight="bold" text-anchor="middle">CRC-16 (16b)</text>
+                </svg>
+
+                <ul style="color: #c9d1d9; margin-top: 10px; line-height: 1.8; font-size: 1.05rem;">
+                    <li><strong style="color: #f85149">Sync Pulse (9 Bits):</strong> An alternating
+                        <code>101010101</code> wave clock that calibrates the hardware phase-locked loop for the row.
+                    </li>
+                    <li><strong style="color: #1f6feb">Audio Words (84 Bits):</strong> Six 14-bit data words carrying
+                        the actual PCM sampled audio (interleaved L/R stereo pairs).</li>
+                    <li><strong style="color: #d29922">Parity P/Q (28 Bits):</strong> Two 14-bit error correction blocks
+                        used to mathematically reconstruct damaged audio bits from scratch if the VHS tape has a
+                        dropout.</li>
+                    <li><strong style="color: #00ff88">CRC-16 (16 Bits):</strong> A cryptographic checksum at the very
+                        end of the line used to aggressively verify if the line was corrupted by video noise.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="installation">
+            <h2>1. Prerequisites & Installation</h2>
+
+            <div class="step-box">
+                <div class="step-title">Install Java Runtime Environment (JRE)</div>
+                <p>This software is packaged as a standalone Java Archive (<code>.jar</code>). To run it, you must have
+                    Java 8 or newer installed on your computer.</p>
+                <ol>
+                    <li>Visit the official <a class="btn-link" href="https://www.java.com/en/download/manual.jsp"
+                            target="_blank">Java Downloads Page</a>.</li>
+                    <li>Download the <strong>Windows Offline (64-bit)</strong> installer.</li>
+                    <li>Run the installer and follow the standard on-screen instructions.</li>
+                </ol>
+            </div>
+
+            <div class="step-box">
+                <div class="step-title">Install FFmpeg (Optional, Highly Recommended)</div>
+                <p>The application can natively encode silent MP4 black-and-white data streams entirely by itself using
+                    its built-in Java codecs. However, to embed a standard synchronous audio track into your final video
+                    file, you must use FFmpeg.</p>
+                <p><strong>Option A: Using Winget (Easiest for Windows 10/11)</strong></p>
+                <ol>
+                    <li>Open Command Prompt or PowerShell and type: <code>winget install ffmpeg</code></li>
+                    <li>Wait for the installation to complete. Winget will automatically configure your PATH variables.
+                    </li>
+                    <li>Restart your computer or terminal to ensure the command is recognized.</li>
+                </ol>
+                <p><strong>Option B: Manual Installation</strong></p>
+                <ol>
+                    <li>Download the <a class="btn-link" href="https://ffmpeg.org/download.html" target="_blank">FFmpeg
+                            Executable</a> for Windows.</li>
+                    <li>Extract the downloaded archive and add the <code>bin</code> folder to your system's Environment
+                        Variables (PATH).</li>
+                    <li>Verify the installation by opening Command Prompt and typing <code>ffmpeg -version</code>.</li>
+                </ol>
+            </div>
+
+            <div class="step-box">
+                <div class="step-title">Locate the Software</div>
+                <p>Once Java is installed, locate your compiled executable: <code>PCMF1Simulator.jar</code>.</p>
+                <p>Because the app writes video files directly to disk, it is recommended to place the `.jar` file in a
+                    dedicated folder (e.g. your Desktop or Documents) rather than deeply buried in system directories.
+                </p>
+            </div>
+        </section>
+
+        <section id="running">
+            <h2>2. Running the Simulator</h2>
+
+            <div class="step-box">
+                <div class="step-title">Option A: Double Click</div>
+                <p>If Java is correctly associated with `.jar` files in Windows, you can simply
+                    <strong>Double-Click</strong> <code>PCMF1Simulator.jar</code> to launch the graphical user interface.
+                </p>
+            </div>
+
+            <div class="step-box">
+                <div class="step-title">Option B: Command Line (For Debugging)</div>
+                <p>If nothing happens when you double-click, or if you wish to see diagnostic output in a terminal, open
+                    Command Prompt (cmd) or PowerShell, navigate to the folder containing the jar, and run:</p>
+                <pre>java -jar PCMF1Simulator.jar</pre>
+            </div>
+        </section>
+
+        <section id="usage">
+            <h2>3. Usage Instructions</h2>
+
+            <div class="step-box">
+                <div class="step-title">A. Encoding Audio to Video (For VHS Recording)</div>
+                <ol>
+                    <li>Open the application.</li>
+                    <li>Choose your preferred <strong>Encoder</strong> algorithm:
+                        <ul>
+                            <li><strong>JCodec:</strong> Uses the pure Java internal engine. Generates a video-only
+                                STC-007 compliant MP4.</li>
+                            <li><strong>FFmpeg:</strong> (Requires FFmpeg system installation). Rapidly generates the
+                                video matrix and multiplexes it alongside a standard, listenable audio track for perfect
+                                media player pacing. Ensures universal audio format decoding.</li>
+                        </ul>
+                    </li>
+                    <li>Ensure the <strong>Format</strong> dropdown matches your geographical standard (NTSC is standard
+                        for USA/Japan, PAL is standard for Europe). NTSC will process 44,056Hz PCM streams, while PAL
+                        processes standard 44,100Hz.</li>
+                    <li>Click <strong>Encode Audio</strong>.</li>
+                    <li>Select an audio file (<code>.WAV</code>, <code>.FLAC</code>, <code>.MP3</code>,
+                        <code>.M4A</code>). If using FFmpeg, compressed files are natively unpacked into raw 16-bit PCM
+                        automatically.</li>
+                    <li>The app will automatically begin packing the audio into a 720x480 interlaced video matrix. You
+                        will see the video preview generating in real-time on the main panel alongside amplitude
+                        readings on the retro VU meters.</li>
+                    <li>When complete, a mathematical match <code>.mp4</code> will be saved in the same folder as your
+                        input file.</li>
+                </ol>
+            </div>
+
+            <div class="step-box">
+                <div class="step-title">B. Decoding Video to Audio (Realtime Playback)</div>
+                <ol>
+                    <li>Click <strong>Decode Audio</strong>.</li>
+                    <li>Select a valid STC-007 compliant MP4 video payload.</li>
+                    <li>The application will play the audio out of your computer speakers in real-time, syncing the
+                        hardware clocks directly to the NTSC framerate.</li>
+                    <li>The GUI will actively track corrected P/Q Parity dropout errors simulating true hardware
+                        recovery.</li>
+                </ol>
+            </div>
+
+            <div class="step-box">
+                <div class="step-title">C. Quick Testing</div>
+                <p>Clicking <strong>Quick Test (440Hz)</strong> immediately fires a generated test sine wave
+                    through the encoder to verify your hardware limits and visually check UI performance without needing
+                    to hunt down a WAV file.</p>
+            </div>
+        </section>
+
+        <section id="hardware">
+            <h2>4. Hardware VHS Recording</h2>
+            <div class="note">
+                <strong>Attention Video Enthusiasts:</strong> You cannot use cheap scaling "HDMI-to-RCA" converter boxes
+                to print this MP4 to tape.
+            </div>
+            <p>The output MP4 is a <strong>720x480 NTSC or PAL Interlaced Signal</strong>. It relies on
+                pure black-and-white binary edge retention. Modern composite scalers "smear" the picture to
+                make it look smooth, which destroys the data.</p>
+            <p>To record the MP4 to tape successfully, you must output a raw unscaled 480i 15kHz signal:</p>
+            <ul>
+                <li><strong>Raspberry Pi:</strong> Play the MP4 through a Pi's native 3.5mm A/V composite combo jack.
+                </li>
+            </ul>
+        </section>
+    </div>
+
+</body>
+
+</html>
