@@ -1,6 +1,6 @@
-# Sony PCM-F1 Simulator
+# Sony PCM-F1 & PCM-48K Simulator
 
-Welcome to the **Sony PCM-F1 Simulator**. This application provides a window into early digital audio. It allows you to encode 16-bit WAV files into a 1981-era EIAJ STC-007 NTSC video signal, ready to record onto physical VHS hardware. Conversely, it can decode ripped video captures and play them back in real-time.
+Welcome to the **Sony PCM-F1 Simulator**. This application provides a window into early digital audio and modern high-fidelity "over-video" protocols. It allows you to encode 16-bit audio into professional video signals, ready to record onto physical VHS hardware.
 
 > [!NOTE]
 > This application was coded by Gemini 3.1 Pro and has not been tested on actual hardware or PCM encoded videos. It is meant primarily as a proof of concept and educational tool. If you are looking for a production-ready application, please use the original Sony PCM-F1.
@@ -25,6 +25,22 @@ Each of the 240 active audio lines contains exactly **137 bits** of data:
 *   **Audio Words (84 Bits):** Six 14-bit data words carrying the actual PCM sampled audio (interleaved L/R stereo pairs).
 *   **Parity P/Q (28 Bits):** Error correction blocks used to reconstruct damaged audio from VHS dropouts.
 *   **CRC-16 (16 Bits):** A checksum used to verify if the line was corrupted by noise.
+
+---
+
+## The PCM-48K Protocol (High Fidelity)
+
+For modern users, the simulator includes a custom **PCM-48K** protocol. This mode trades the legacy error correction for pure audio fidelity, allowing for 48kHz / 16-bit stereo playback with zero pulsating artifacts.
+
+### PCM-48K Specifications
+*   **Sample Rate:** 48,000 Hz (Professional Standard).
+*   **Resolution:** 16-Bit Linear PCM.
+*   **Line Density:** 8 samples per line (4 stereo pairs).
+*   **Frame Structure:** 400 active audio lines per frame.
+*   **UI Features:** Includes real-time vertical VU meters and metadata telemetry injected into the video padding.
+
+> [!TIP]
+> **Fidelity vs. Robustness:** While PCM-48K sounds better, it lacks the P/Q parity of the Sony PCM-F1. This means it is "fragile"—a single VHS dropout will cause a pop or skip, whereas the PCM-F1 mode can "calculate" its way through tape damage.
 
 ---
 
@@ -59,10 +75,11 @@ java -jar PCMF1Simulator.jar
 ## 3. Usage Instructions
 
 ### A. Encoding Audio to Video (For VHS Recording)
-1.  Open the application and choose an **Encoder** (JCodec for pure Java, or FFmpeg for full audio/video muxing).
-2.  Select your **Format** (NTSC for USA/Japan 44,056Hz, PAL for Europe 44,100Hz).
-3.  Click **Encode Audio** and select your source file (`.WAV`, `.FLAC`, `.MP3`, etc.).
-4.  The app will generate the video matrix in real-time. When complete, a `.mp4` will be saved in the same folder.
+1.  Open the application and select your **Protocol** (Legacy PCM-F1 or High-Fidelity PCM-48K).
+2.  Choose an **Encoder** (JCodec for pure Java, or FFmpeg for full audio/video muxing).
+3.  Select your **Format** (NTSC for USA/Japan 44,056Hz, PAL for Europe 44,100Hz).
+4.  Click **Encode Audio** and select your source file (`.WAV`, `.FLAC`, `.MP3`, etc.).
+5.  The app will generate the video matrix in real-time. When complete, a `.mp4` will be saved.
 
 ### B. Decoding Video to Audio (Realtime Playback)
 1.  Click **Decode Audio** and select a valid STC-007 compliant MP4.
