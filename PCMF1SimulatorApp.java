@@ -89,7 +89,7 @@ public class PCMF1SimulatorApp extends JFrame {
     private static final int VBLANK_LINES = 17; // Lines skipped for VHS head sync
     private static final int DATA_LINES_PER_FIELD = 245; // Exactly 245 data lines per field as per STC-007 Spec
     private static final int DATA_LINES_PER_FRAME = DATA_LINES_PER_FIELD * 2; // 490 total data lines per frame
-    
+
     // PCM-48K Constants
     private static final int PCM48_BITS_PER_LINE = 152;
     private static final int PCM48_BIT_WIDTH = 4;
@@ -98,12 +98,12 @@ public class PCMF1SimulatorApp extends JFrame {
     private static final int PCM48_VBLANK_LINES = 40;
     private static final int PCM48_SAMPLES_PER_LINE = 8;
     private static final int PCM48_SAMPLES_PER_FRAME = PCM48_SAMPLES_PER_LINE * PCM48_AUDIO_LINES;
-    
-    private String extractedMetadata = "PCM-48K-V1.0    ";
+
+    private String extractedMetadata = "PCM-48K-V1.0";
     private int lastRenderUs = 0;
 
     public PCMF1SimulatorApp() {
-        setTitle("Sony PCM-F1 Simulator v1.2.15 -- 3/11/2026");
+        setTitle("Sony PCM-F1 Simulator v1.3.0 -- 3/25/2026");
         setSize(1000, 700);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -550,7 +550,8 @@ public class PCMF1SimulatorApp extends JFrame {
                 boolean isPcm48 = cmbProtocol.getSelectedIndex() == 1;
                 boolean isPal = cmbFormat.getSelectedIndex() == 1;
                 int sampleRate = isPcm48 ? 48000 : (isPal ? 44100 : 44056);
-                lblStatus.setText("Status: Realtime Capture (" + (isPcm48 ? "PCM-48K" : (isPal ? "PAL" : "NTSC")) + ")...");
+                lblStatus.setText(
+                        "Status: Realtime Capture (" + (isPcm48 ? "PCM-48K" : (isPal ? "PAL" : "NTSC")) + ")...");
 
                 AudioFormat format = new AudioFormat(sampleRate, 16, 2, true, false); // Little-endian
                 DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
@@ -613,7 +614,7 @@ public class PCMF1SimulatorApp extends JFrame {
                 // 6 audio short samples (12 bytes) make up exactly 1 STC-007 Horizontal
                 // Scanline.
                 // STC-007 has exactly 490 data lines per frame (DATA_LINES_PER_FRAME).
-                int samplesPerFrame = isPcm48 ? PCM48_SAMPLES_PER_FRAME : (isPal ? 2940 : 2936); 
+                int samplesPerFrame = isPcm48 ? PCM48_SAMPLES_PER_FRAME : (isPal ? 2940 : 2936);
                 int bytesPerFrame = samplesPerFrame * 2; // 2 bytes per sample
                 byte[] captureBuffer = new byte[isMonoCapture ? bytesPerFrame / 2 : bytesPerFrame];
 
@@ -765,7 +766,7 @@ public class PCMF1SimulatorApp extends JFrame {
             int dataCounter = 0;
 
             for (int fieldY = 0; fieldY < HEIGHT / 2; fieldY++) {
-                if (fieldY < VBLANK_LINES)
+                if (fieldY < VBLANK_LINES || fieldY >= VBLANK_LINES + 245)
                     continue;
 
                 int y = fieldY * 2 + field;
@@ -942,12 +943,19 @@ public class PCMF1SimulatorApp extends JFrame {
         final int fmMaxL = maxAmpL;
         final int fmMaxR = maxAmpR;
         final long loopElapsed = System.currentTimeMillis() - startTime;
+        double currentKbps = (totalBytesRecorded * 8.0 / 1000.0) / ((loopElapsed + 1) / 1000.0);
+        if (Double.isNaN(currentKbps) || Double.isInfinite(currentKbps))
+            currentKbps = 0;
+        final double safeKbps = currentKbps;
+
         lastRenderUs = (int) ((f > 0) ? (loopElapsed * 1000) / f : 0);
 
         SwingUtilities.invokeLater(() -> {
             videoPanel.setImage(bi);
             double fps = (double) pFrame / ((loopElapsed + 1) / 1000.0);
-            lblStatus.setText(String.format("Status: Realtime PCM-48K [%.1f fps]", fps));
+            if (Double.isNaN(fps) || Double.isInfinite(fps))
+                fps = 0.0;
+            lblStatus.setText(String.format("Status: Realtime PCM-48K [%.1f fps / %.1f kbps]", fps, safeKbps));
             vuLeft.setValue(fmMaxL);
             vuRight.setValue(fmMaxR);
         });
@@ -972,7 +980,7 @@ public class PCMF1SimulatorApp extends JFrame {
      *                  status tracker
      * @throws Exception if I/O or JCodec encoding failures occur
      */
-        private void runEncoderLoop(short[] audio, File file, String labelInfo) throws Exception {
+    private void runEncoderLoop(short[] audio, File file, String labelInfo) throws Exception {
         long startTime = System.currentTimeMillis();
         boolean isPcm48 = cmbProtocol.getSelectedIndex() == 1;
 
@@ -1104,7 +1112,7 @@ public class PCMF1SimulatorApp extends JFrame {
                 int dataCounter = 0;
 
                 for (int fieldY = 0; fieldY < HEIGHT / 2; fieldY++) {
-                    if (fieldY < VBLANK_LINES)
+                    if (fieldY < VBLANK_LINES || fieldY >= VBLANK_LINES + 245)
                         continue;
 
                     int y = fieldY * 2 + field;
@@ -1377,19 +1385,20 @@ public class PCMF1SimulatorApp extends JFrame {
                 Graphics2D g2 = rgbBi.createGraphics();
                 g2.drawImage(bi, 0, 0, null);
                 g2.dispose();
-                jcodecEncoder.encodeNativeFrame(AWTUtil.fromBufferedImage(rgbBi, org.jcodec.common.model.ColorSpace.RGB));
+                jcodecEncoder
+                        .encodeNativeFrame(AWTUtil.fromBufferedImage(rgbBi, org.jcodec.common.model.ColorSpace.RGB));
             }
 
             final int pFrame = f;
             final int fmMaxL = maxAmpL;
             final int fmMaxR = maxAmpR;
-            long currentTime = System.currentTimeMillis();
-            lastRenderUs = (int) ((currentTime - startTime) * 1000 / (f + 1)); // Simplified average for meta
+            final long loopElapsed = System.currentTimeMillis() - startTime;
+            lastRenderUs = (int) ((f > 0) ? (loopElapsed * 1000) / f : 0);
 
             SwingUtilities.invokeLater(() -> {
                 videoPanel.setImage(bi);
-                lblStatus.setText(
-                        String.format("Encoding PCM-48K Frame: %d/%d - %d Hz", pFrame, totalFrames, sampleRate));
+                lblStatus.setText(String.format("Encoding Video Frame: %d/%d [%s] - Elapsed: %s",
+                        pFrame, totalFrames, labelInfo, formatElapsedTime(loopElapsed)));
                 vuLeft.setValue(fmMaxL);
                 vuRight.setValue(fmMaxR);
             });
@@ -1406,11 +1415,21 @@ public class PCMF1SimulatorApp extends JFrame {
 
         long elapsed = System.currentTimeMillis() - startTime;
         String timeStr = formatElapsedTime(elapsed);
+        double mbSize = 0;
+        if (file.exists()) {
+            mbSize = file.length() / (1024.0 * 1024.0);
+        }
+        final double finalMbSize = mbSize;
+        final double avgFps = elapsed > 0 ? (totalFrames * 1000.0) / elapsed : 0;
+
         SwingUtilities.invokeLater(() -> {
-            lblStatus.setText("Status: PCM-48K Saved Successfully! (" + timeStr + ")");
-            JOptionPane.showMessageDialog(this, "Encoding Complete!\nTime: " + timeStr, "Task Complete",
-                    JOptionPane.INFORMATION_MESSAGE);
-                });
+            lblStatus.setText("Status: MP4 Saved Successfully! (Time: " + timeStr + ")");
+            JOptionPane.showMessageDialog(this,
+                    String.format(
+                            "Encoding Complete!\nTime Elapsed: %s\nAverage FPS: %.2f\nMP4 Size: %.2f MB",
+                            timeStr, avgFps, finalMbSize),
+                    "Task Complete", JOptionPane.INFORMATION_MESSAGE);
+        });
     }
 
     private void startDecodingPCM48(File file) {
@@ -1431,10 +1450,14 @@ public class PCMF1SimulatorApp extends JFrame {
                 DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
 
                 int selectedMixerIndex = cmbOutputDevice.getSelectedIndex();
-                Mixer mixer = (selectedMixerIndex > 0 && selectedMixerIndex < outputMixers.length) ? AudioSystem.getMixer(outputMixers[selectedMixerIndex]) : null;
+                Mixer mixer = (selectedMixerIndex > 0 && selectedMixerIndex < outputMixers.length)
+                        ? AudioSystem.getMixer(outputMixers[selectedMixerIndex])
+                        : null;
 
-                if (mixer != null) line = (SourceDataLine) mixer.getLine(info);
-                else line = (SourceDataLine) AudioSystem.getLine(info);
+                if (mixer != null)
+                    line = (SourceDataLine) mixer.getLine(info);
+                else
+                    line = (SourceDataLine) AudioSystem.getLine(info);
 
                 line.open(format, 38400); // Buffer for ~200ms
                 activeDataLine = line;
@@ -1450,8 +1473,14 @@ public class PCMF1SimulatorApp extends JFrame {
 
                 crcErrors = 0;
                 while (isRunning && null != (picture = grab.getNativeFrame())) {
-                    while (isPaused && isRunning) { try { Thread.sleep(50); } catch (Exception e) {} }
-                    if (!isRunning) break;
+                    while (isPaused && isRunning) {
+                        try {
+                            Thread.sleep(50);
+                        } catch (Exception e) {
+                        }
+                    }
+                    if (!isRunning)
+                        break;
 
                     BufferedImage bi = AWTUtil.toBufferedImage(picture);
                     SwingUtilities.invokeLater(() -> videoPanel.setImage(bi));
@@ -1465,8 +1494,10 @@ public class PCMF1SimulatorApp extends JFrame {
                                 StringBuilder sb = new StringBuilder();
                                 for (int c = 0; c < 16; c++) {
                                     int ch = 0;
-                                    for (int b = 0; b < 8; b++) if (bits[8 + (c * 8) + b]) ch |= (1 << (7 - b));
-                                    sb.append((char)ch);
+                                    for (int b = 0; b < 8; b++)
+                                        if (bits[8 + (c * 8) + b])
+                                            ch |= (1 << (7 - b));
+                                    sb.append((char) ch);
                                 }
                                 extractedMetadata = sb.toString();
                             }
@@ -1476,21 +1507,26 @@ public class PCMF1SimulatorApp extends JFrame {
                         // Audio Extraction (Lines 40-439)
                         if (y >= PCM48_VBLANK_LINES && y < PCM48_VBLANK_LINES + PCM48_AUDIO_LINES) {
                             boolean[] bits = extractBitsPCM48(bi, y);
-                            if (bits == null) continue;
-                            
+                            if (bits == null)
+                                continue;
+
                             int frameId = 0;
-                            for (int b = 0; b < 4; b++) if (bits[4 + b]) frameId |= (1 << (3 - b));
-                            
+                            for (int b = 0; b < 4; b++)
+                                if (bits[4 + b])
+                                    frameId |= (1 << (3 - b));
+
                             int actualCrc = extractCrcPCM48(bits);
                             if (crc16CCITT(bits, 4, 132) != actualCrc) {
                                 crcErrors++;
-                                continue; 
+                                continue;
                             }
 
                             int lineIdx = y - PCM48_VBLANK_LINES;
                             for (int w = 0; w < 8; w++) {
                                 short val = 0;
-                                for (int b = 0; b < 16; b++) if (bits[8 + (w * 16) + b]) val |= (1 << (15 - b));
+                                for (int b = 0; b < 16; b++)
+                                    if (bits[8 + (w * 16) + b])
+                                        val |= (1 << (15 - b));
                                 deJitterBuffer[frameId][(lineIdx * 8) + w] = val;
                             }
                             bucketReady[frameId] = true;
@@ -1498,7 +1534,7 @@ public class PCMF1SimulatorApp extends JFrame {
                     }
 
                     // Playback from the buffer with a 2-frame lag to absorb jitter
-                    int playIdx = (playPulse + 14) % 16; 
+                    int playIdx = (playPulse + 14) % 16;
                     if (bucketReady[playIdx]) {
                         byte[] pcm = new byte[PCM48_SAMPLES_PER_FRAME * 2];
                         int maxAmpL = 0, maxAmpR = 0;
@@ -1506,8 +1542,10 @@ public class PCMF1SimulatorApp extends JFrame {
                             short sample = deJitterBuffer[playIdx][i];
                             pcm[i * 2] = (byte) (sample & 0xFF);
                             pcm[i * 2 + 1] = (byte) ((sample >> 8) & 0xFF);
-                            if (i % 2 == 0) maxAmpL = Math.max(maxAmpL, Math.abs(sample));
-                            else maxAmpR = Math.max(maxAmpR, Math.abs(sample));
+                            if (i % 2 == 0)
+                                maxAmpL = Math.max(maxAmpL, Math.abs(sample));
+                            else
+                                maxAmpR = Math.max(maxAmpR, Math.abs(sample));
                         }
                         line.write(pcm, 0, pcm.length);
                         bucketReady[playIdx] = false;
@@ -1517,7 +1555,8 @@ public class PCMF1SimulatorApp extends JFrame {
                         SwingUtilities.invokeLater(() -> {
                             vuLeft.setValue(fMaxL);
                             vuRight.setValue(fMaxR);
-                            lblStatus.setText("Status: Playing PCM-48K | Meta: " + extractedMetadata + " | CRC Err: " + crcErrors);
+                            lblStatus.setText("Status: Playing PCM-48K | Meta: " + extractedMetadata + " | CRC Err: "
+                                    + crcErrors);
                         });
                     }
                     playPulse = (playPulse + 1) % 16;
@@ -1525,7 +1564,10 @@ public class PCMF1SimulatorApp extends JFrame {
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                if (line != null) { line.stop(); line.close(); }
+                if (line != null) {
+                    line.stop();
+                    line.close();
+                }
                 isRunning = false;
             }
         });
@@ -1534,19 +1576,22 @@ public class PCMF1SimulatorApp extends JFrame {
     }
 
     private boolean[] extractBitsPCM48(BufferedImage bi, int y) {
-        int threshold = 122; 
+        int threshold = 122;
         boolean[] bits = new boolean[PCM48_BITS_PER_LINE];
         for (int b = 0; b < PCM48_BITS_PER_LINE; b++) {
             int midX = PCM48_PIXEL_OFFSET + (b * PCM48_BIT_WIDTH) + (PCM48_BIT_WIDTH / 2);
             bits[b] = (bi.getRGB(midX, y) & 0xFF) > threshold;
         }
-        if (!bits[1] || bits[0] || bits[2] || !bits[3]) return null; // 1010 Sync
+        if (!bits[1] || bits[0] || bits[2] || !bits[3])
+            return null; // 1010 Sync
         return bits;
     }
 
     private int extractCrcPCM48(boolean[] bits) {
         int crc = 0;
-        for (int b = 0; b < 16; b++) if (bits[136 + b]) crc |= (1 << (15 - b));
+        for (int b = 0; b < 16; b++)
+            if (bits[136 + b])
+                crc |= (1 << (15 - b));
         return crc;
     }
 
