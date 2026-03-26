@@ -100,10 +100,9 @@ public class PCMF1SimulatorApp extends JFrame {
     private static final int PCM48_SAMPLES_PER_FRAME = PCM48_SAMPLES_PER_LINE * PCM48_AUDIO_LINES;
 
     private String extractedMetadata = "PCM-48K-V1.0";
-    private int lastRenderUs = 0;
 
     public PCMF1SimulatorApp() {
-        setTitle("Sony PCM-F1 Simulator v1.3.0 -- 3/25/2026");
+        setTitle("Sony PCM-F1 Simulator v1.3.3 -- 3/26/2026");
         setSize(1000, 700);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -358,22 +357,20 @@ public class PCMF1SimulatorApp extends JFrame {
                 boolean isBigEndian = false;
 
                 boolean isPal = cmbFormat.getSelectedIndex() == 1;
-                float sampleRate = isPal ? 44100f : 44056f;
+                boolean isPcm48 = cmbProtocol.getSelectedIndex() == 1;
+                final float targetSampleRate = isPcm48 ? 48000.0f : (isPal ? 44100.0f : 44056.0f);
+                float currentSampleRate = targetSampleRate; // Tracks the actual rate of the loaded bytes
 
                 String fileName = audioFile.getName().toLowerCase();
 
                 if (fileName.endsWith(".wav")) {
                     try {
-                        AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile);
-                        AudioFormat format = ais.getFormat();
-                        if (format.getSampleSizeInBits() != 16 || format.getChannels() != 2) {
-                            throw new Exception("AudioSystem: Only 16-bit Stereo PCM WAV files are supported! (Got "
-                                    + format.getSampleSizeInBits() + " bit, " + format.getChannels() + " channels)");
-                        }
-                        bytes = ais.readAllBytes();
-                        isBigEndian = format.isBigEndian();
-                        sampleRate = format.getSampleRate();
-                        ais.close();
+                        AudioInputStream originalStream = AudioSystem.getAudioInputStream(audioFile);
+                        AudioFormat originalFormat = originalStream.getFormat();
+                        currentSampleRate = originalFormat.getSampleRate();
+                        isBigEndian = originalFormat.isBigEndian();
+                        bytes = originalStream.readAllBytes();
+                        originalStream.close();
                     } catch (Exception e) {
                         // Fallback to manual RIFF parsing if AudioSystem dislikes some header metadata
                         // (Extensible, etc)
@@ -398,7 +395,7 @@ public class PCMF1SimulatorApp extends JFrame {
                                 if (chunkId.equals("fmt ")) {
                                     short audioFormat = Short.reverseBytes(raf.readShort());
                                     short channels = Short.reverseBytes(raf.readShort());
-                                    sampleRate = (float) Integer.reverseBytes(raf.readInt());
+                                    currentSampleRate = (float) Integer.reverseBytes(raf.readInt());
                                     raf.skipBytes(6); // Skip byteRate (4), blockAlign (2)
                                     short bitsPerSample = Short.reverseBytes(raf.readShort());
 
@@ -431,7 +428,7 @@ public class PCMF1SimulatorApp extends JFrame {
 
                     ProcessBuilder pb = new ProcessBuilder(
                             "ffmpeg", "-y", "-i", audioFile.getAbsolutePath(),
-                            "-f", "s16le", "-ac", "2", "-ar", String.valueOf((int) sampleRate), "-");
+                            "-f", "s16le", "-ac", "2", "-ar", String.valueOf((int) targetSampleRate), "-");
                     pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                     Process p = pb.start();
 
@@ -453,6 +450,33 @@ public class PCMF1SimulatorApp extends JFrame {
                     isBigEndian = false; // s16le guarantees Little Endian
                 }
 
+                if (bytes != null && currentSampleRate != targetSampleRate) {
+                    try {
+                        AudioFormat sourceFormat = new AudioFormat(currentSampleRate, 16, 2, true, isBigEndian);
+                        java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes);
+                        AudioInputStream sourceStream = new AudioInputStream(bais, sourceFormat,
+                                bytes.length / sourceFormat.getFrameSize());
+
+                        AudioFormat targetFormat = new AudioFormat(
+                                AudioFormat.Encoding.PCM_SIGNED,
+                                targetSampleRate,
+                                16,
+                                2,
+                                4,
+                                targetSampleRate,
+                                false);
+
+                        AudioInputStream resampledStream = AudioSystem.getAudioInputStream(targetFormat, sourceStream);
+                        bytes = resampledStream.readAllBytes();
+                        currentSampleRate = targetSampleRate;
+                        isBigEndian = false;
+                    } catch (Exception resampleEx) {
+                        resampleEx.printStackTrace();
+                        // If resampling fails, we'll proceed with original bytes but duration will be
+                        // off
+                    }
+                }
+
                 int totalSamples = bytes.length / 2; // shorts
                 short[] audio = new short[totalSamples];
                 for (int i = 0; i < totalSamples; i++) {
@@ -464,8 +488,8 @@ public class PCMF1SimulatorApp extends JFrame {
                 }
 
                 double durationSeconds = 0;
-                if (sampleRate > 0 && bytes != null) {
-                    durationSeconds = (bytes.length / 4.0) / sampleRate;
+                if (currentSampleRate > 0 && bytes != null) {
+                    durationSeconds = (bytes.length / 4.0) / currentSampleRate;
                 }
                 int hours = (int) (durationSeconds / 3600);
                 int minutes = (int) ((durationSeconds % 3600) / 60);
@@ -878,7 +902,10 @@ public class PCMF1SimulatorApp extends JFrame {
 
         BufferedImage bi = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_BYTE_GRAY);
         byte[] pixels = ((java.awt.image.DataBufferByte) bi.getRaster().getDataBuffer()).getData();
-        String meta = String.format("V1.0:%6d us  ", lastRenderUs);
+        // Scrolling Metadata Implementation
+        String scrollSource = "PCM-48K REALTIME CAPTURE | ";
+        int scrollOffset = (f / 5) % scrollSource.length();
+        String meta = (scrollSource + scrollSource).substring(scrollOffset, scrollOffset + 16);
 
         for (int y = 0; y < HEIGHT; y++) {
             boolean[] bits = new boolean[PCM48_BITS_PER_LINE];
@@ -947,8 +974,6 @@ public class PCMF1SimulatorApp extends JFrame {
         if (Double.isNaN(currentKbps) || Double.isInfinite(currentKbps))
             currentKbps = 0;
         final double safeKbps = currentKbps;
-
-        lastRenderUs = (int) ((f > 0) ? (loopElapsed * 1000) / f : 0);
 
         SwingUtilities.invokeLater(() -> {
             videoPanel.setImage(bi);
@@ -1315,7 +1340,13 @@ public class PCMF1SimulatorApp extends JFrame {
                 maxAmpR = Math.max(maxAmpR, Math.abs(audio[startSample + i + 1]));
             }
 
-            String meta = String.format("V1.0:%6d us  ", lastRenderUs);
+            // Scrolling Metadata Implementation: Uses labelInfo (contains filename) as the
+            // source
+            String scrollSource = labelInfo + " | ";
+            if (scrollSource.length() < 16)
+                scrollSource = String.format("%-16s", scrollSource);
+            int scrollOffset = (f / 5) % scrollSource.length(); // Scroll 1 character every 5 frames
+            String meta = (scrollSource + scrollSource).substring(scrollOffset, scrollOffset + 16);
 
             for (int y = 0; y < HEIGHT; y++) {
                 boolean[] bits = new boolean[PCM48_BITS_PER_LINE];
@@ -1393,7 +1424,6 @@ public class PCMF1SimulatorApp extends JFrame {
             final int fmMaxL = maxAmpL;
             final int fmMaxR = maxAmpR;
             final long loopElapsed = System.currentTimeMillis() - startTime;
-            lastRenderUs = (int) ((f > 0) ? (loopElapsed * 1000) / f : 0);
 
             SwingUtilities.invokeLater(() -> {
                 videoPanel.setImage(bi);
@@ -1438,6 +1468,7 @@ public class PCMF1SimulatorApp extends JFrame {
 
         activeDecodeThread = new Thread(() -> {
             SourceDataLine line = null;
+            long startTime = System.currentTimeMillis();
             try {
                 isRunning = true;
                 isPaused = false;
@@ -1467,12 +1498,22 @@ public class PCMF1SimulatorApp extends JFrame {
                 FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
                 org.jcodec.common.model.Picture picture;
 
+                double totalDuration = 0.0;
+                try {
+                    totalDuration = grab.getVideoTrack().getMeta().getTotalDuration();
+                } catch (Exception e) {
+                }
+                final String totalTimeStr = formatElapsedTime((long) (totalDuration * 1000));
+
                 short[][] deJitterBuffer = new short[16][PCM48_SAMPLES_PER_FRAME];
                 boolean[] bucketReady = new boolean[16];
                 int playPulse = 0;
 
                 crcErrors = 0;
+                long framesProcessed = 0;
+                long totalBytesProcessed = 0;
                 while (isRunning && null != (picture = grab.getNativeFrame())) {
+                    framesProcessed++;
                     while (isPaused && isRunning) {
                         try {
                             Thread.sleep(50);
@@ -1548,27 +1589,59 @@ public class PCMF1SimulatorApp extends JFrame {
                                 maxAmpR = Math.max(maxAmpR, Math.abs(sample));
                         }
                         line.write(pcm, 0, pcm.length);
+                        totalBytesProcessed += pcm.length;
                         bucketReady[playIdx] = false;
 
                         final int fMaxL = maxAmpL;
                         final int fMaxR = maxAmpR;
+                        final long loopElapsed = System.currentTimeMillis() - startTime;
+                        final double currentFps = loopElapsed > 0 ? (framesProcessed / (loopElapsed / 1000.0)) : 0.0;
+                        final double currentKbps = loopElapsed > 0
+                                ? ((totalBytesProcessed * 8.0 / 1000.0) / (loopElapsed / 1000.0))
+                                : 0.0;
+                        final int snapCrc = crcErrors;
+                        final String fnTotalTime = totalTimeStr;
+
                         SwingUtilities.invokeLater(() -> {
                             vuLeft.setValue(fMaxL);
                             vuRight.setValue(fMaxR);
-                            lblStatus.setText("Status: Playing PCM-48K | Meta: " + extractedMetadata + " | CRC Err: "
-                                    + crcErrors);
+                            lblStatus.setText(
+                                    String.format(
+                                            "Status: Decoding... Time: %s/%s [%.1f fps / %.1f kbps] | CRC: %d | Fixed: 0 | Dropped: %d | Meta: %s",
+                                            formatElapsedTime(loopElapsed), fnTotalTime, currentFps, currentKbps,
+                                            snapCrc, snapCrc, extractedMetadata));
                         });
                     }
                     playPulse = (playPulse + 1) % 16;
+                }
+
+                if (isRunning) {
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    String timeStr = formatElapsedTime(elapsed);
+                    String stats = String.format(
+                            "Audio Streams Resynced & Played (PCM-48K):\nTime Elapsed: %s\nCRC Corruptions: %d\nInterpolated/Dropped Blocks: %d\nMeta: %s",
+                            timeStr, crcErrors, crcErrors, extractedMetadata);
+                    SwingUtilities.invokeLater(() -> {
+                        lblStatus.setText("Status: Decoding Complete. (Time: " + timeStr + ")");
+                    });
+                    JOptionPane.showMessageDialog(this, stats, "Decoding Complete", JOptionPane.INFORMATION_MESSAGE);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 if (line != null) {
-                    line.stop();
+                    try {
+                        if (isRunning)
+                            line.drain();
+                    } catch (Exception ignored) {
+                    }
                     line.close();
                 }
                 isRunning = false;
+                SwingUtilities.invokeLater(() -> {
+                    vuLeft.setValue(0);
+                    vuRight.setValue(0);
+                });
             }
         });
         activeDecodeThread.setPriority(Thread.MAX_PRIORITY);
