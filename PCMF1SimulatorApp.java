@@ -42,6 +42,7 @@ public class PCMF1SimulatorApp extends JFrame {
     private int lostBlocks = 0;
     private int qLosses = 0;
     private byte[] audioBuffer = new byte[32768]; // Shared audio buffer to reduce GC pressure
+    private JCheckBox chkSB = new JCheckBox("SB");
 
     private Thread activeCaptureThread = null;
     private Thread activeDecodeThread = null;
@@ -132,6 +133,8 @@ public class PCMF1SimulatorApp extends JFrame {
         actionPanel.add(btnOpen);
         actionPanel.add(btnSimulate);
         actionPanel.add(btnRealtime);
+        actionPanel.add(chkSB);
+        chkSB.setToolTipText("Show Safe Boundary (TV viewable area)");
 
         JPanel playbackPanel = new JPanel();
         JButton btnVolDown = new JButton("Vol -");
@@ -211,6 +214,11 @@ public class PCMF1SimulatorApp extends JFrame {
             if (isRunning && isRealtimeActive) {
                 startRealtimeCapture();
             }
+        });
+
+        chkSB.addActionListener(e -> {
+            videoPanel.showSB = chkSB.isSelected();
+            videoPanel.repaint();
         });
 
         setVisible(true);
@@ -2259,6 +2267,12 @@ public class PCMF1SimulatorApp extends JFrame {
      */
     class VideoPanel extends JPanel {
         private BufferedImage img;
+        public boolean showSB = false;
+
+        public VideoPanel() {
+            setPreferredSize(new Dimension(WIDTH, HEIGHT));
+            setBackground(Color.BLACK);
+        }
 
         /**
          * Sets the internal buffer image and requests a repaint from the Swing manager.
@@ -2275,6 +2289,41 @@ public class PCMF1SimulatorApp extends JFrame {
             super.paintComponent(g);
             if (img != null)
                 g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
+
+            // Safe Boundary Overlay
+            showSB = chkSB.isSelected(); // Direct sync
+
+            if (showSB) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                boolean isPal = cmbFormat.getSelectedIndex() == 1;
+                // Reference dimensions: NTSC visible is 480 lines. PAL emulated on 526-line canvas is ~516 lines.
+                int activeHeight = isPal ? 516 : 480;
+                int activeWidth = 700; // Inset 10px from edges for better visibility
+
+                // Use EXPLICIT PCMF1SimulatorApp constants to avoid shadowing by ImageObserver.WIDTH/HEIGHT
+                double sx = (double) getWidth() / PCMF1SimulatorApp.WIDTH;
+                double sy = (double) getHeight() / PCMF1SimulatorApp.HEIGHT;
+
+                int x = (int) ((PCMF1SimulatorApp.WIDTH - activeWidth) / 2.0 * sx);
+                int y = (int) ((PCMF1SimulatorApp.HEIGHT - activeHeight) / 2.0 * sy);
+                int w = (int) (activeWidth * sx);
+                int h = (int) (activeHeight * sy);
+
+                // Main robust red border (4px thick using fillRect)
+                g2.setColor(Color.RED);
+                int t = 4;
+                g2.fillRect(x, y, w, t); // Top
+                g2.fillRect(x, y + h - t, w, t); // Bottom
+                g2.fillRect(x, y, t, h); // Left
+                g2.fillRect(x + w - t, y, t, h); // Right
+
+                // White dashed inner line for contrast
+                g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] { 5 }, 0));
+                g2.setColor(Color.WHITE);
+                g2.drawRect(x + t, y + t, w - 2 * t, h - 2 * t);
+            }
         }
     }
 
