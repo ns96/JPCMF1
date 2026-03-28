@@ -103,7 +103,7 @@ public class PCMF1SimulatorApp extends JFrame {
     private String extractedMetadata = "PCM-48K-V1.0";
 
     public PCMF1SimulatorApp() {
-        setTitle("Sony PCM-F1 Simulator v1.3.3 -- 3/26/2026");
+        setTitle("Sony PCM-F1 Simulator v1.3.4 -- 3/28/2026");
         setSize(1000, 700);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -2298,11 +2298,13 @@ public class PCMF1SimulatorApp extends JFrame {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                 boolean isPal = cmbFormat.getSelectedIndex() == 1;
-                // Reference dimensions: NTSC visible is 480 lines. PAL emulated on 526-line canvas is ~516 lines.
+                // Reference dimensions: NTSC visible is 480 lines. PAL emulated on 526-line
+                // canvas is ~516 lines.
                 int activeHeight = isPal ? 516 : 480;
                 int activeWidth = 700; // Inset 10px from edges for better visibility
 
-                // Use EXPLICIT PCMF1SimulatorApp constants to avoid shadowing by ImageObserver.WIDTH/HEIGHT
+                // Use EXPLICIT PCMF1SimulatorApp constants to avoid shadowing by
+                // ImageObserver.WIDTH/HEIGHT
                 double sx = (double) getWidth() / PCMF1SimulatorApp.WIDTH;
                 double sy = (double) getHeight() / PCMF1SimulatorApp.HEIGHT;
 
@@ -2323,6 +2325,22 @@ public class PCMF1SimulatorApp extends JFrame {
                 g2.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] { 5 }, 0));
                 g2.setColor(Color.WHITE);
                 g2.drawRect(x + t, y + t, w - 2 * t, h - 2 * t);
+
+                // Add NTSC/PAL and Resolution text in top inner corner
+                String label = (isPal ? "PAL " : "NTSC ") + activeWidth + "x" + activeHeight;
+                g2.setFont(new Font("SansSerif", Font.BOLD, 12));
+                int textX = x + t + 5;
+                int textY = y + t + 15;
+                // Semi-transparent black box for maximum contrast against flickering data
+                FontMetrics fm = g2.getFontMetrics();
+                int labelW = fm.stringWidth(label);
+                int labelH = fm.getAscent();
+                g2.setColor(new Color(0, 0, 0, 160));
+                g2.fillRect(textX - 2, textY - labelH - 2, labelW + 4, labelH + 6);
+                
+                // Safety Yellow text for maximum visibility
+                g2.setColor(Color.YELLOW);
+                g2.drawString(label, textX, textY);
             }
         }
     }

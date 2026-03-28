@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCM-48K: Digital Audio Over Analog Video</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --card-bg: #1f2833;
+            --accent: #45a29e;
+            --accent-glow: #66fcf1;
+            --text-main: #c5c6c7;
+            --text-muted: #8b8f96;
+            --warning: #ffb84c; /* Updated to a less aggressive orange */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--accent-glow);
+            text-shadow: 0 0 15px rgba(102, 252, 241, 0.4);
+            margin: 0 0 10px 0;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(69, 162, 158, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+            border-color: rgba(102, 252, 241, 0.3);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #fff;
+            margin-top: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin-top: 25px;
+        }
+
+        p {
+            font-size: 1.05rem;
+        }
+
+        .highlight {
+            color: var(--accent-glow);
+            font-weight: 600;
+        }
+
+        .caution {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95rem;
+            color: #a3b8cc;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .data-diagram {
+            display: flex;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+            font-family: monospace;
+            text-align: center;
+        }
+
+        .diagram-section {
+            padding: 15px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .diagram-section:last-child {
+            border-right: none;
+        }
+
+        .ds-sync { background: rgba(255, 184, 76, 0.1); color: #ffb84c; flex: 1; }
+        .ds-id { background: rgba(102, 252, 241, 0.1); color: #66fcf1; flex: 1; }
+        .ds-payload { background: rgba(255, 255, 255, 0.05); color: #fff; flex: 6; }
+        .ds-crc { background: rgba(139, 143, 150, 0.1); color: #8b8f96; flex: 2; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>PCM-48K Protocol</h1>
+            <div class="subtitle">High-Fidelity Digital Audio Over Analog Video</div>
+        </header>
+
+        <div class="card">
+            <h2>1. Design Objectives</h2>
+            <p><strong>PCM-48K</strong> is a high-performance, native 48,000 Hz continuous digital audio transport protocol designed for analog video environments. It moves away from the legacy EIAJ PCM-F1 specifications to provide a efficient 1:1 hardware mapping optimized for modern capture interfaces and synchronized framebuffers.</p>
+            <p>By streamlining the data structure, PCM-48K eliminates legacy overhead while maintaining robust signal integrity. The protocol precisely maps <span class="highlight">1,600 stereo audio samples onto 400 NTSC video lines per frame.</span></p>
+        </div>
+
+        <div class="card">
+            <h2>2. Technical Challenges</h2>
+            <p>Transmitting uncompressed digital audio across analog interfaces involves two primary synchronization challenges encountered by modern capture hardware:</p>
+            
+            <h3>A. Asynchronous Framebuffer Synchronization</h3>
+            <p>Software clocks typically drive digital video at exactly <span class="highlight">30.00 Hz</span>, while analog NTSC hardware operates at approximately <span class="caution">29.970 Hz</span>. This slight timing discrepancy can result in a "torn" frame during capture, where a single buffer contains segments from two consecutive time periods.</p>
+            <p>Without proper handling, a frame tear causes a temporal discontinuity in the audio stream, resulting in periodic playback artifacts as the decoder encounters out-of-sequence data blocks.</p>
+
+            <h3>B. Interlace Field Phase Inversion</h3>
+            <p>NTSC transmits alternating odd and even fields. Standard capture hardware often weaves these two fields into a single 480-line progressive buffer. If the fields are combined out of sequence (Time=0 with Time=16ms), it results in an "interlace judder," where data on alternating lines is horizontally offset.</p>
+            <p>This offset traditionally compromises the tracking reliability of standard linear scanners, leading to significant increases in bit-error rates and CRC failures.</p>
+        </div>
+
+        <div class="card">
+            <h2>3. Engineering Solutions</h2>
+            
+            <h3>Packet-Based Re-Sequencing</h3>
+            <p>To mitigate the impact of asynchronous frame tearing, PCM-48K employs a sequence-tracking mechanism:</p>
+            <ul>
+                <li>The encoder tags each horizontal data line with a 4-bit <strong>FRAME_ID</strong>.</li>
+                <li>The decoder analyzes the <strong>FRAME_ID</strong> of each incoming packet to detect discontinuities.</li>
+                <li>Packets are re-assembled into the correct chronological order within a circular jitter buffer.</li>
+                <li>A controlled 2-frame playback delay allows for seamless reconstruction of torn data segments before audio output, effectively eliminating synchronization artifacts.</li>
+            </ul>
+
+            <h3>Independent Field-Phase Tracking</h3>
+            <p>To ensure reliability during field-weave mismatches, the decoding algorithm treats even and odd scanlines as independent data streams. By maintaining separate phase-tracking matrices for each field, the decoder can compensate for horizontal offsets without losing overall tracking continuity, maintaining low CRC error rates under adverse capture conditions.</p>
+        </div>
+
+        <div class="card">
+            <h2>4. Video Payload Specification</h2>
+            <p>The PCM-48K payload structure is designed for efficiency and ease of synchronization, encapsulating 152 binary elements per line:</p>
+            
+            <div class="data-diagram">
+                <div class="diagram-section ds-sync">1 0 1 0<br>(Sync)</div>
+                <div class="diagram-section ds-id">4 Bits<br>(Frame ID)</div>
+                <div class="diagram-section ds-payload">128 Bits / 8 Shorts<br>(Stereo Audio Payload)</div>
+                <div class="diagram-section ds-crc">16 Bits<br>(CCITT CRC)</div>
+            </div>
+            
+            <p>Each data point occupies a <strong>4-pixel cell</strong>. The payload is centered within the 720-pixel horizontal span, leaving substantial safety margins to account for analog blanking and overscan variability.</p>
+        </div>
+
+        <div class="card">
+            <h2>5. Auxiliary Features</h2>
+            <p>The protocol utilizes the unused lines at the top and bottom of the video frame for diagnostic and telemetry data:</p>
+            <ul>
+                <li><strong>Integrated VU Metrics:</strong> The encoder computes peak amplitude levels in real-time, rendering active vertical volume bars at the bottom of the frame for visual monitor feedback.</li>
+                <li><strong>Metadata Stream:</strong> A dedicated telemetry channel on Scanline 20 provides a 16-character ASCII metadata field. This allows for the transmission of dynamic track information and system status directly within the video signal, which is automatically parsed and displayed by the decoder.</li>
+            </ul>
+        </div>
+
+        <div class="card" style="border-left-color: var(--warning);">
+            <h2>6. Reliability and Media Constraints</h2>
+            <p><strong class="caution">Important:</strong> The PCM-48K protocol is optimized for maximum audio density and fidelity. Unlike the legacy PCM-F1 standard, it does not include P/Q Reed-Solomon error correction or data interleaving.</p>
+            <h3>Hardware Compatibility</h3>
+            <p>Because PCM-48K maps raw PCM data 1:1 onto video scanlines, the integrity of the audio stream depends entirely on the stability of the analog transport. Any physical signal loss, such as a tape dropout, head-switching noise, or oxide damage, will result in immediate and uncorrected audio artifacts (clicks or pops).</p>
+            <p>Consequently, the PCM-48K protocol is <span class="caution">not suitable for physical analog media</span> with high noise floors or mechanical instabilities, including:</p>
+            <ul>
+                <li>Consumer VHS/Beta Tapes (especially at EP/SLP speeds)</li>
+                <li>Worn or damaged Magnetic Tape</li>
+                <li>Analog LaserDisc recording</li>
+                <li>Poorly shielded composite video cables</li>
+            </ul>
+            <p>For applications requiring long-term archival on physical tape, the <strong>Legacy PCM-F1 Mode</strong> should be used, as it provides the necessary error correction to mitigate tape-based dropouts.</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

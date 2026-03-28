@@ -161,10 +161,10 @@ int main(int argc, char *argv[]) {
   }
   
   if (use_alsa) {
-    printf("Initializing Pure 48K VHS ALSA Capture...\n");
+    printf("Initializing Pure 48K PCM ALSA Capture...\n");
     if (init_alsa_capture() < 0) { printf("Failed ALSA Capture\n"); return -1; }
   } else {
-    printf("Initializing Pure 48K VHS Tone Sweep Generator...\n");
+    printf("Initializing Pure 48K PCM Tone Sweep Generator...\n");
   }
 
   if (monitor_audio) {
@@ -222,7 +222,11 @@ int main(int argc, char *argv[]) {
     }
 
     char dynamic_metadata[17];
-    snprintf(dynamic_metadata, sizeof(dynamic_metadata), "V1.0:%6ld us  ", last_us);
+    if (use_alsa) {
+      snprintf(dynamic_metadata, sizeof(dynamic_metadata), "ALSA: %6ld us  ", last_us);
+    } else {
+      snprintf(dynamic_metadata, sizeof(dynamic_metadata), "%5.0fHz %6ldu ", current_freq, last_us);
+    }
     for (int i = strlen(dynamic_metadata); i < 16; i++) dynamic_metadata[i] = ' ';
     dynamic_metadata[16] = '\0';
 
