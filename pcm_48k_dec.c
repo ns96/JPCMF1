@@ -292,16 +292,17 @@ int main(int argc, char *argv[]) {
                  if (de_jitter_valid[p_id][search]) { next_valid = search; break; }
                }
                int missing_lines = (next_valid != -1 ? next_valid : AUDIO_LINES) - line_idx;
-               int end_l = (next_valid != -1) ? de_jitter_buffer[p_id][(next_valid * 8) + 6] : hold_l;
-               int end_r = (next_valid != -1) ? de_jitter_buffer[p_id][(next_valid * 8) + 7] : hold_r;
+               // Use the START of the next valid line as the target for smoother transition
+               int end_l = (next_valid != -1) ? de_jitter_buffer[p_id][(next_valid * 8) + 0] : hold_l;
+               int end_r = (next_valid != -1) ? de_jitter_buffer[p_id][(next_valid * 8) + 1] : hold_r;
 
-               for (int miss = 0; missing_lines > 0 && miss < missing_lines; miss++) {
-                 double frac = (double)(miss + 1) / (missing_lines + 1);
-                 int16_t l_fill = hold_l + (int16_t)((end_l - hold_l) * frac);
-                 int16_t r_fill = hold_r + (int16_t)((end_r - hold_r) * frac);
+               int total_missing_pairs = missing_lines * 4;
+               for (int miss = 0; miss < missing_lines; miss++) {
                  for(int w_pair=0; w_pair<4; w_pair++) {
-                   de_jitter_buffer[p_id][((line_idx + miss) * 8) + (w_pair*2)] = l_fill;
-                   de_jitter_buffer[p_id][((line_idx + miss) * 8) + (w_pair*2) + 1] = r_fill;
+                   int pair_idx = (miss * 4) + w_pair;
+                   double frac = (double)(pair_idx + 1) / (total_missing_pairs + 1);
+                   de_jitter_buffer[p_id][((line_idx + miss) * 8) + (w_pair*2)] = hold_l + (int16_t)((end_l - hold_l) * frac);
+                   de_jitter_buffer[p_id][((line_idx + miss) * 8) + (w_pair*2) + 1] = hold_r + (int16_t)((end_r - hold_r) * frac);
                  }
                }
                line_idx += missing_lines - 1; 
@@ -333,8 +334,8 @@ int main(int argc, char *argv[]) {
 
       if (++video_frames % 30 == 0) {
         double error_rate = total_lines > 0 ? ((double)total_crc_errors / total_lines) * 100.0 : 0.0;
-        printf("\rFrames: %d | CRC Err: %lu (%.2f%%) | Shift Even: %d Odd: %d   \nMetadata: [%s]\033[A", 
-            video_frames, total_crc_errors, error_rate, frame_locked_shift[0], frame_locked_shift[1], extracted_metadata);
+        printf("\rFrames: %d | Lines: %lu | CRC Err: %lu (%.2f%%) | Shift Even: %d Odd: %d   \nMetadata: [%s]\033[A", 
+            video_frames, total_lines, total_crc_errors, error_rate, frame_locked_shift[0], frame_locked_shift[1], extracted_metadata);
         fflush(stdout);
       }
 
