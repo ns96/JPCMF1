@@ -120,7 +120,7 @@ public class PCMF1SimulatorApp extends JFrame {
         JPanel actionPanel = new JPanel();
         JButton btnSave = new JButton("Encode Audio");
         JButton btnOpen = new JButton("Decode Audio");
-        JButton btnSimulate = new JButton("Encode Test (440Hz)");
+        JButton btnSimulate = new JButton("Test (440Hz)");
         JButton btnRealtime = new JButton("Realtime");
 
         actionPanel.add(new JLabel("Protocol:"));
@@ -2337,7 +2337,7 @@ public class PCMF1SimulatorApp extends JFrame {
                 int labelH = fm.getAscent();
                 g2.setColor(new Color(0, 0, 0, 160));
                 g2.fillRect(textX - 2, textY - labelH - 2, labelW + 4, labelH + 6);
-                
+
                 // Safety Yellow text for maximum visibility
                 g2.setColor(Color.YELLOW);
                 g2.drawString(label, textX, textY);
