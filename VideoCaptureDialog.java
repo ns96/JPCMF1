@@ -385,8 +385,8 @@ public class VideoCaptureDialog extends JFrame {
                 for (int b = 0; b < 16; b++)
                     if (bits[136 + b])
                         expectedCrc |= (1 << (15 - b));
-                if (crc16CCITT(bits, 4, 132) != expectedCrc)
-                    totalCrcErrors++;
+                // if (crc16CCITT(bits, 4, 132) != expectedCrc)
+                //     totalCrcErrors++;
             }
         } else {
             // PCM-F1 (STC-007) - Replicate PCMF1SimulatorApp's logic
@@ -431,8 +431,8 @@ public class VideoCaptureDialog extends JFrame {
                     for (int b = 0; b < 16; b++)
                         if (bits[102 + b])
                             expectedCrc |= (1 << (15 - b));
-                    if (crc16CCITT(bits, 4, 98) != expectedCrc)
-                        totalCrcErrors++;
+                    // if (crc16CCITT(bits, 4, 98) != expectedCrc)
+                    //     totalCrcErrors++;
                 }
             }
         }
@@ -538,21 +538,20 @@ public class VideoCaptureDialog extends JFrame {
                         byte[] target = ((DataBufferByte) img.getRaster().getDataBuffer()).getData();
                         System.arraycopy(frameBuffer, 0, target, 0, frameBuffer.length);
 
-                        processCrcForFrame(img);
+// processCrcForFrame(img);
 
                         final BufferedImage fImg = img;
-                        final long snapErrors = totalCrcErrors;
-                        final long snapLines = totalLinesScanned;
+                        // final long snapErrors = totalCrcErrors;
+                        // final long snapLines = totalLinesScanned;
                         final long snapFrames = totalFramesProcessed;
                         final boolean palSelectedFinal = palSelected;
 
                         SwingUtilities.invokeLater(() -> {
-                            double errorPercent = snapLines > 0 ? (double) snapErrors / snapLines * 100.0 : 0.0;
+                            // double errorPercent = snapLines > 0 ? (double) snapErrors / snapLines * 100.0 : 0.0;
                             previewPanel.setImage(fImg);
                             lblStatus.setText(String.format(
-                                    "Status: Capture ACTIVE (%s) | Frames: %d | Protocol: %s | CRC Errors: %d (%.2f%%)",
-                                    (palSelectedFinal ? "PAL" : "NTSC"), snapFrames, cmbProtocol.getSelectedItem(),
-                                    snapErrors, errorPercent));
+                                    "Status: Capture ACTIVE (%s) | Frames: %d | Protocol: %s [CRC DISABLED]",
+                                    (palSelectedFinal ? "PAL" : "NTSC"), snapFrames, cmbProtocol.getSelectedItem()));
                         });
 
                         // Broadcast to main application
