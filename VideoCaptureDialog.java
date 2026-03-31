@@ -498,20 +498,23 @@ public class VideoCaptureDialog extends JFrame {
                 if (os.contains("win")) {
                     pb = new ProcessBuilder(
                             "ffmpeg", "-y", "-loglevel", "error",
-                            "-f", "dshow", "-video_size", "720x" + captureHeight,
-                            "-framerate", framerate, "-i", "video=" + device,
-                            "-f", "rawvideo", "-pix_fmt", "gray", "-");
+                            "-f", "dshow", "-rtbufsize", "512M", "-i", "video=" + device,
+                            "-vf", "scale=720:" + captureHeight + ":flags=neighbor",
+                            "-r", framerate,
+                            "-f", "rawvideo", "-pix_fmt", "bgr24", "-");
                 } else if (os.contains("mac")) {
                     String index = device.split(":")[0];
                     pb = new ProcessBuilder(
-                            "ffmpeg", "-f", "avfoundation", "-video_size", "720x" + captureHeight,
-                            "-framerate", framerate, "-i", index,
-                            "-f", "rawvideo", "-pix_fmt", "gray", "-");
+                            "ffmpeg", "-f", "avfoundation", "-rtbufsize", "512M", "-i", index,
+                            "-vf", "scale=720:" + captureHeight + ":flags=neighbor",
+                            "-r", framerate,
+                            "-f", "rawvideo", "-pix_fmt", "bgr24", "-");
                 } else {
                     pb = new ProcessBuilder(
-                            "ffmpeg", "-f", "v4l2", "-video_size", "720x" + captureHeight,
-                            "-framerate", framerate, "-i", device,
-                            "-f", "rawvideo", "-pix_fmt", "gray", "-");
+                            "ffmpeg", "-f", "v4l2", "-rtbufsize", "512M", "-i", device,
+                            "-vf", "scale=720:" + captureHeight + ":flags=neighbor",
+                            "-r", framerate,
+                            "-f", "rawvideo", "-pix_fmt", "bgr24", "-");
                 }
 
                 pb.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -521,7 +524,7 @@ public class VideoCaptureDialog extends JFrame {
                 totalCrcErrors = 0;
                 totalLinesScanned = 0;
                 totalFramesProcessed = 0;
-                byte[] frameBuffer = new byte[720 * captureHeight];
+                byte[] frameBuffer = new byte[720 * captureHeight * 3];
 
                 while (capturing) {
                     int read = 0;
@@ -534,7 +537,7 @@ public class VideoCaptureDialog extends JFrame {
 
                     if (read == frameBuffer.length) {
                         totalFramesProcessed++;
-                        BufferedImage img = new BufferedImage(720, captureHeight, BufferedImage.TYPE_BYTE_GRAY);
+                        BufferedImage img = new BufferedImage(720, captureHeight, BufferedImage.TYPE_3BYTE_BGR);
                         byte[] target = ((DataBufferByte) img.getRaster().getDataBuffer()).getData();
                         System.arraycopy(frameBuffer, 0, target, 0, frameBuffer.length);
 
