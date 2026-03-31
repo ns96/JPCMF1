@@ -21,9 +21,9 @@ jar xf ../lib/jcodec-javase-0.2.5.jar
 echo "[3/5] Removing conflicting META-INF signatures..."
 rm -rf META-INF
 
-echo "[4/5] Compiling PCMF1SimulatorApp.java for Java 8 compatibility..."
+echo "[4/5] Compiling application source code for Java 8 compatibility..."
 # Note: Wildcard in classpath must be quoted to prevent shell expansion
-javac -source 8 -target 8 -cp "../lib/*" ../PCMF1SimulatorApp.java -d .
+javac -source 8 -target 8 -cp "../lib/*" ../*.java -d .
 
 echo "[5/5] Packaging PCMF1Simulator.jar..."
 jar cvfm ../PCMF1Simulator.jar ../Manifest.txt .

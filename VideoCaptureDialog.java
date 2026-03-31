@@ -31,6 +31,7 @@ public class VideoCaptureDialog extends JFrame {
     private final PreviewPanel previewPanel = new PreviewPanel();
 
     private Process ffmpegProcess;
+    private Process propsProcess;
     private volatile boolean capturing = false;
     private Thread captureThread;
     private final LinkedBlockingQueue<BufferedImage> frameQueue = new LinkedBlockingQueue<>(2);
@@ -45,7 +46,7 @@ public class VideoCaptureDialog extends JFrame {
      *               removed)
      */
     public VideoCaptureDialog(int width, int height, boolean isPal) {
-        super("Sony PCM-F1 Video Capture Engine");
+        super("Simple Video Capture Utility (v1.0.0 -- 3/31/2026)");
         this.width = width;
         this.height = height;
 
@@ -113,6 +114,11 @@ public class VideoCaptureDialog extends JFrame {
                 stopCapture();
             }
         });
+
+        // Ensure cleanup if JVM exits
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            stopCapture();
+        }));
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
     }
@@ -386,7 +392,7 @@ public class VideoCaptureDialog extends JFrame {
                     if (bits[136 + b])
                         expectedCrc |= (1 << (15 - b));
                 // if (crc16CCITT(bits, 4, 132) != expectedCrc)
-                //     totalCrcErrors++;
+                // totalCrcErrors++;
             }
         } else {
             // PCM-F1 (STC-007) - Replicate PCMF1SimulatorApp's logic
@@ -432,7 +438,7 @@ public class VideoCaptureDialog extends JFrame {
                         if (bits[102 + b])
                             expectedCrc |= (1 << (15 - b));
                     // if (crc16CCITT(bits, 4, 98) != expectedCrc)
-                    //     totalCrcErrors++;
+                    // totalCrcErrors++;
                 }
             }
         }
@@ -461,11 +467,12 @@ public class VideoCaptureDialog extends JFrame {
                 }
 
                 pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-                Process p = pb.start();
-                p.waitFor();
+                propsProcess = pb.start();
+                propsProcess.waitFor();
             } catch (Exception ex) {
                 ex.printStackTrace();
             } finally {
+                propsProcess = null;
                 SwingUtilities.invokeLater(() -> {
                     btnProps.setEnabled(true);
                     lblStatus.setText("Status: Capture Thread IDLE...");
@@ -541,7 +548,7 @@ public class VideoCaptureDialog extends JFrame {
                         byte[] target = ((DataBufferByte) img.getRaster().getDataBuffer()).getData();
                         System.arraycopy(frameBuffer, 0, target, 0, frameBuffer.length);
 
-// processCrcForFrame(img);
+                        // processCrcForFrame(img);
 
                         final BufferedImage fImg = img;
                         // final long snapErrors = totalCrcErrors;
@@ -550,7 +557,8 @@ public class VideoCaptureDialog extends JFrame {
                         final boolean palSelectedFinal = palSelected;
 
                         SwingUtilities.invokeLater(() -> {
-                            // double errorPercent = snapLines > 0 ? (double) snapErrors / snapLines * 100.0 : 0.0;
+                            // double errorPercent = snapLines > 0 ? (double) snapErrors / snapLines * 100.0
+                            // : 0.0;
                             previewPanel.setImage(fImg);
                             lblStatus.setText(String.format(
                                     "Status: Capture ACTIVE (%s) | Frames: %d | Protocol: %s [CRC DISABLED]",
@@ -583,6 +591,14 @@ public class VideoCaptureDialog extends JFrame {
             } catch (InterruptedException ignored) {
             }
             ffmpegProcess = null;
+        }
+        if (propsProcess != null) {
+            propsProcess.destroyForcibly();
+            try {
+                propsProcess.waitFor();
+            } catch (InterruptedException ignored) {
+            }
+            propsProcess = null;
         }
         SwingUtilities.invokeLater(() -> {
             btnStart.setEnabled(true);
