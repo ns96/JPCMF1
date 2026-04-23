@@ -103,7 +103,7 @@ public class PCMF1SimulatorApp extends JFrame {
     private String extractedMetadata = "PCM-48K-V1.0";
 
     public PCMF1SimulatorApp() {
-        setTitle("Sony PCM-F1 Simulator v1.3.4 -- 3/28/2026");
+        setTitle("Sony PCM-F1 Simulator v1.3.11 -- 4/23/2026");
         setSize(1000, 700);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -798,7 +798,7 @@ public class PCMF1SimulatorApp extends JFrame {
             int dataCounter = 0;
 
             for (int fieldY = 0; fieldY < HEIGHT / 2; fieldY++) {
-                if (fieldY < VBLANK_LINES || fieldY >= VBLANK_LINES + 245)
+                if (fieldY < VBLANK_LINES || fieldY >= VBLANK_LINES + DATA_LINES_PER_FIELD + 1)
                     continue;
 
                 int y = fieldY * 2 + field;
@@ -1097,7 +1097,8 @@ public class PCMF1SimulatorApp extends JFrame {
                     "ffmpeg", "-y",
                     "-f", "rawvideo", "-pix_fmt", "gray", "-s", WIDTH + "x" + HEIGHT, "-r", fpsStr, "-i", "-",
                     "-f", "s16le", "-ar", String.valueOf(sampleRate), "-ac", "2", "-i", tempAudioFile.getAbsolutePath(),
-                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "1", "-preset", "ultrafast", "-c:a", "aac",
+                    "-vsync", "0",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "baseline", "-crf", "1", "-preset", "fast", "-x264-params", "no-deblock=1:subme=0", "-c:a", "aac",
                     "-b:a", "192k",
                     file.getAbsolutePath());
             pb.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -1145,7 +1146,7 @@ public class PCMF1SimulatorApp extends JFrame {
                 int dataCounter = 0;
 
                 for (int fieldY = 0; fieldY < HEIGHT / 2; fieldY++) {
-                    if (fieldY < VBLANK_LINES || fieldY >= VBLANK_LINES + 245)
+                    if (fieldY < VBLANK_LINES || fieldY >= VBLANK_LINES + DATA_LINES_PER_FIELD + 1)
                         continue;
 
                     int y = fieldY * 2 + field;
@@ -1180,14 +1181,11 @@ public class PCMF1SimulatorApp extends JFrame {
                         int lineIdx = startDataIdx + dataCounter;
                         dataCounter++;
 
-                        if (lineIdx >= totalLines)
-                            continue; // Leave as just sync and white reference
-
                         boolean hasData = false;
 
                         // First render Words 1-6 and Word 7 (Parity)
                         for (int w = 0; w < 7; w++) {
-                            short word = matrixLines[lineIdx * 8 + w];
+                            short word = (lineIdx < totalLines) ? matrixLines[lineIdx * 8 + w] : -1;
                             if (word != -1) {
                                 hasData = true;
                                 for (int b = 0; b < 14; b++) {
@@ -1205,7 +1203,7 @@ public class PCMF1SimulatorApp extends JFrame {
                         }
 
                         // Finally render Word 8 (Q-Word)
-                        short qWord = matrixLines[lineIdx * 8 + 7];
+                        short qWord = (lineIdx < totalLines) ? matrixLines[lineIdx * 8 + 7] : -1;
                         if (qWord != -1) {
                             for (int b = 0; b < 14; b++) {
                                 bits[118 + b] = ((qWord >> (13 - b)) & 1) == 1;
@@ -1315,7 +1313,8 @@ public class PCMF1SimulatorApp extends JFrame {
                     "ffmpeg", "-y",
                     "-f", "rawvideo", "-pix_fmt", "gray", "-s", WIDTH + "x" + HEIGHT, "-r", fpsStr, "-i", "-",
                     "-f", "s16le", "-ar", String.valueOf(sampleRate), "-ac", "2", "-i", tempAudioFile.getAbsolutePath(),
-                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "1", "-preset", "ultrafast", "-c:a", "aac",
+                    "-vsync", "0",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "baseline", "-crf", "1", "-preset", "fast", "-x264-params", "no-deblock=1:subme=0", "-c:a", "aac",
                     "-b:a", "192k",
                     file.getAbsolutePath());
             pb.redirectError(ProcessBuilder.Redirect.INHERIT);
